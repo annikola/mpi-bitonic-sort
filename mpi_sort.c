@@ -28,7 +28,6 @@ int main(int argc, char *argv[]) {
     int i, j, k;
     int uno_reverse, repetition, step, position;
     char ascento[REPS][P];
-    char minmax[TOTAL_REPS][P];
     int used[P];
     int A[P][Q + 1];
     Instruction instructions[TOTAL_REPS][P];
@@ -60,7 +59,7 @@ int main(int argc, char *argv[]) {
         repetition++;
     }
 
-    // Using the above create the MIN-MAX and the instructions "truth" table
+    // Using the above create the Instructions "truth" table
     position = 0; // Position
     for (repetition = 0; repetition < REPS - 1; repetition++) { // We have REPS "main" repetitions that involve sorting and TOTAL_REPS
         step = ipow(2, repetition);                         // that involve all layers of merging
@@ -68,7 +67,6 @@ int main(int argc, char *argv[]) {
             // We split the elbow merging into two parts
             // This is the first part - merging of the two elbows
             if ((!ascento[repetition][i] && !ascento[repetition + 1][i]) || (ascento[repetition][i] && ascento[repetition + 1][i])) {
-                minmax[position][i] = MIN;
                 instructions[position][i].flow = MIN;
                 if (!ascento[repetition][i]) {
                     instructions[position][i].target_pid = i + step;
@@ -76,7 +74,6 @@ int main(int argc, char *argv[]) {
                     instructions[position][i].target_pid = i - step;
                 }
             } else if ((!ascento[repetition][i] && ascento[repetition + 1][i]) || (ascento[repetition][i] && !ascento[repetition + 1][i])) {
-                minmax[position][i] = MAX;
                 instructions[position][i].flow = MAX;
                 if (!ascento[repetition][i]) {
                     instructions[position][i].target_pid = i + step;
@@ -96,15 +93,11 @@ int main(int argc, char *argv[]) {
             for (i = 0; i < P; i++) {
                 if (!used[i]) {
                     if (!ascento[repetition + 1][i]) {
-                        minmax[position][i] = MIN;
-                        minmax[position][i + step] = MAX;
                         instructions[position][i].flow = MIN;
                         instructions[position][i].target_pid = i + step;
                         instructions[position][i + step].flow = MAX;
                         instructions[position][i + step].target_pid = i;
                     } else {
-                        minmax[position][i] = MAX;
-                        minmax[position][i + step] = MIN;
                         instructions[position][i].flow = MAX;
                         instructions[position][i].target_pid = i + step;
                         instructions[position][i + step].flow = MIN;
@@ -127,17 +120,17 @@ int main(int argc, char *argv[]) {
     // }
     // printf("\n");
 
-    // Print the minmax "truth" table
-    // for (i = 0; i < TOTAL_REPS; i++) {
-    //     for (j = 0; j < P; j++) {
-    //         if (!instructions[i][j].flow) {
-    //             printf(" %d sends to %d | ", i, instructions[i][j].target_pid);
-    //         } else {
-    //             printf(" %d receives from %d | ", i, instructions[i][j].target_pid);
-    //         }
-    //     }
-    //     printf("\n\n");
-    // }
+    // Print the Instructions "truth" table
+    for (i = 0; i < TOTAL_REPS; i++) {
+        for (j = 0; j < P; j++) {
+            if (!instructions[i][j].flow) {
+                printf(" %d sends to %d | ", j, instructions[i][j].target_pid);
+            } else {
+                printf(" %d receives from %d | ", j, instructions[i][j].target_pid);
+            }
+        }
+        printf("\n\n");
+    }
 
     // Print the sorted array
     // printf("\n");
