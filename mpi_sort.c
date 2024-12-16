@@ -1,26 +1,21 @@
 #include <stdio.h>
 
-#define P 16
-#define Q 4
-#define REPS 5 // log(P) + 1
+#define P 8
+#define REPS 4 // log(P) + 1
 #define TOTAL_REPS ((REPS - 1) * REPS / 2)
 
-#define MAX_INTEGER 100
 #define MIN 0
 #define MAX 1
 #define ASCENT 0
 #define DESCENT 1
 
 typedef struct {
-    char sort;
+    char sort; // 0: ascending, 1: descending, 2: do nothing
     char flow; // Sends (MIN) or receives (MAX)
     char target_pid;
 } Instruction;
 
 int ipow(int base, int exp);
-int asc_compare(const void *a, const void *b);
-int desc_compare(const void *a, const void *b);
-void bitonic_swap(int *v1, int *v2, int idx);
 
 int main(int argc, char *argv[]) {
 
@@ -28,7 +23,6 @@ int main(int argc, char *argv[]) {
     int uno_reverse, repetition, step, position;
     char ascento[REPS][P];
     int used[P];
-    int A[P][Q + 1];
     Instruction instructions[TOTAL_REPS][P];
 
     // Constract the "truth" table for the directions (ascending - descending)
@@ -62,7 +56,7 @@ int main(int argc, char *argv[]) {
                 } else {
                     instructions[position][i].target_pid = i - step;
                 }
-                instructions[position][i].sort = 1;
+                instructions[position][i].sort = ascento[repetition][i];
             } else if ((!ascento[repetition][i] && ascento[repetition + 1][i]) || (ascento[repetition][i] && !ascento[repetition + 1][i])) {
                 instructions[position][i].flow = MAX;
                 if (!ascento[repetition][i]) {
@@ -70,7 +64,7 @@ int main(int argc, char *argv[]) {
                 } else {
                     instructions[position][i].target_pid = i - step;
                 }
-                instructions[position][i].sort = 1;
+                instructions[position][i].sort = ascento[repetition][i];
             }
         }
         position++;
@@ -88,13 +82,15 @@ int main(int argc, char *argv[]) {
                         instructions[position][i].target_pid = i + step;
                         instructions[position][i + step].flow = MAX;
                         instructions[position][i + step].target_pid = i;
-                        instructions[position][i].sort = 0;
+                        instructions[position][i].sort = 2;
+                        instructions[position][i + step].sort = 2;
                     } else {
                         instructions[position][i].flow = MAX;
                         instructions[position][i].target_pid = i + step;
                         instructions[position][i + step].flow = MIN;
                         instructions[position][i + step].target_pid = i;
-                        instructions[position][i].sort = 0;
+                        instructions[position][i].sort = 2;
+                        instructions[position][i + step].sort = 2;
                     }
                     used[i] = 1;
                     used[i + step] = 1;
@@ -118,10 +114,10 @@ int main(int argc, char *argv[]) {
         printf("For process %d\n", j);
         printf("--------------\n");
         for (i = 0; i < TOTAL_REPS; i++) {
-            if (instructions[i][j].sort && !ascento[i][j]) {
-                printf("sort elements of %d\n", j);
-            } else if (instructions[i][j].sort && ascento[i][j]) {
-
+            if (instructions[i][j].sort == ASCENT) {
+                printf("sort elements of %d ascending\n", j);
+            } else if (instructions[i][j].sort == DESCENT) {
+                printf("sort elements of %d descending\n", j);
             }
 
             if (!instructions[i][j].flow) {
@@ -147,20 +143,4 @@ int ipow(int base, int exp) {
     }
 
     return result;
-}
-
-int asc_compare(const void *a, const void *b) {
-    return (*(int *)a - *(int *)b);
-}
-
-int desc_compare(const void *a, const void *b) {
-    return (*(int *)b - *(int *)a);
-}
-
-void bitonic_swap(int *v1, int *v2, int idx) {
-    int dummy;
-
-    dummy = v1[idx];
-    v1[idx] = v2[idx];
-    v2[idx] = dummy;
 }
