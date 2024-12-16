@@ -1,10 +1,8 @@
 #include <stdio.h>
-#include <stdlib.h>
-#include <time.h>
 
-#define P 8
+#define P 16
 #define Q 4
-#define REPS 4 // log(P) + 1
+#define REPS 5 // log(P) + 1
 #define TOTAL_REPS ((REPS - 1) * REPS / 2)
 
 #define MAX_INTEGER 100
@@ -14,6 +12,7 @@
 #define DESCENT 1
 
 typedef struct {
+    char sort;
     char flow; // Sends (MIN) or receives (MAX)
     char target_pid;
 } Instruction;
@@ -31,16 +30,6 @@ int main(int argc, char *argv[]) {
     int used[P];
     int A[P][Q + 1];
     Instruction instructions[TOTAL_REPS][P];
-
-
-    srand(time(0));
-
-    // Initialize the array to be sorted with random integers
-    // for (i = 0; i < P; i++) {
-    //     for (j = 0; j < Q; j++) {
-    //         A[i][j] = rand() % MAX_INTEGER + 1;
-    //     }
-    // }
 
     // Constract the "truth" table for the directions (ascending - descending)
     repetition = 0;
@@ -73,6 +62,7 @@ int main(int argc, char *argv[]) {
                 } else {
                     instructions[position][i].target_pid = i - step;
                 }
+                instructions[position][i].sort = 1;
             } else if ((!ascento[repetition][i] && ascento[repetition + 1][i]) || (ascento[repetition][i] && !ascento[repetition + 1][i])) {
                 instructions[position][i].flow = MAX;
                 if (!ascento[repetition][i]) {
@@ -80,6 +70,7 @@ int main(int argc, char *argv[]) {
                 } else {
                     instructions[position][i].target_pid = i - step;
                 }
+                instructions[position][i].sort = 1;
             }
         }
         position++;
@@ -97,11 +88,13 @@ int main(int argc, char *argv[]) {
                         instructions[position][i].target_pid = i + step;
                         instructions[position][i + step].flow = MAX;
                         instructions[position][i + step].target_pid = i;
+                        instructions[position][i].sort = 0;
                     } else {
                         instructions[position][i].flow = MAX;
                         instructions[position][i].target_pid = i + step;
                         instructions[position][i + step].flow = MIN;
                         instructions[position][i + step].target_pid = i;
+                        instructions[position][i].sort = 0;
                     }
                     used[i] = 1;
                     used[i + step] = 1;
@@ -121,43 +114,36 @@ int main(int argc, char *argv[]) {
     // printf("\n");
 
     // Print the Instructions "truth" table
-    for (i = 0; i < TOTAL_REPS; i++) {
-        for (j = 0; j < P; j++) {
+    for (j = 0; j < P; j++) {
+        printf("For process %d\n", j);
+        printf("--------------\n");
+        for (i = 0; i < TOTAL_REPS; i++) {
+            if (instructions[i][j].sort && !ascento[i][j]) {
+                printf("sort elements of %d\n", j);
+            } else if (instructions[i][j].sort && ascento[i][j]) {
+
+            }
+
             if (!instructions[i][j].flow) {
-                printf(" %d sends to %d | ", j, instructions[i][j].target_pid);
+                printf("%d sends to %d\n", j, instructions[i][j].target_pid);
             } else {
-                printf(" %d receives from %d | ", j, instructions[i][j].target_pid);
+                printf("%d receives from %d\n", j, instructions[i][j].target_pid);
             }
         }
         printf("\n\n");
     }
-
-    // Print the sorted array
-    // printf("\n");
-    // for (i = 0; i < P; i++) {
-    //     for (j = 0; j < Q; j++) {
-    //         printf("%d ", A[i][j]);
-    //     }
-    //     printf("\n");
-    // }
-    // printf("\n");
 
     return 0;
 }
 
 int ipow(int base, int exp) {
 
-    int result = 1;
+    int i;
+    int result;
 
-    for (;;) {
-        if (exp & 1) {
-            result *= base;
-        }
-        exp >>= 1;
-        if (!exp) {
-            break;
-        }
-        base *= base;
+    result = 1;
+    for (i = 0; i < exp; i++) {
+        result *= base;
     }
 
     return result;
