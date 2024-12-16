@@ -67,22 +67,22 @@ int main(int argc, char *argv[]) {
         for (i = 0; i < P; i++) {
             // We split the elbow merging into two parts
             // This is the first part - merging of the two elbows
-            if (!ascento[repetition][i] && !ascento[repetition + 1][i]) {
+            if ((!ascento[repetition][i] && !ascento[repetition + 1][i]) || (ascento[repetition][i] && ascento[repetition + 1][i])) {
                 minmax[position][i] = MIN;
                 instructions[position][i].flow = MIN;
-                instructions[position][i].target_pid = i + step;
-            } else if (!ascento[repetition][i] && ascento[repetition + 1][i]) {
+                if (!ascento[repetition][i]) {
+                    instructions[position][i].target_pid = i + step;
+                } else {
+                    instructions[position][i].target_pid = i - step;
+                }
+            } else if ((!ascento[repetition][i] && ascento[repetition + 1][i]) || (ascento[repetition][i] && !ascento[repetition + 1][i])) {
                 minmax[position][i] = MAX;
                 instructions[position][i].flow = MAX;
-                instructions[position][i].target_pid = i - step;
-            } else if (ascento[repetition][i] && !ascento[repetition + 1][i]) {
-                minmax[position][i] = MAX;
-                instructions[position][i].flow = MAX;
-                instructions[position][i].target_pid = i - step;
-            } else {
-                minmax[position][i] = MIN;
-                instructions[position][i].flow = MIN;
-                instructions[position][i].target_pid = i + step;
+                if (!ascento[repetition][i]) {
+                    instructions[position][i].target_pid = i + step;
+                } else {
+                    instructions[position][i].target_pid = i - step;
+                }
             }
         }
         position++;
@@ -130,10 +130,10 @@ int main(int argc, char *argv[]) {
     // Print the minmax "truth" table
     // for (i = 0; i < TOTAL_REPS; i++) {
     //     for (j = 0; j < P; j++) {
-    //         if (!minmax[i][j]) {
-    //             printf("MIN ");
+    //         if (!instructions[i][j].flow) {
+    //             printf(" %d sends to %d | ", i, instructions[i][j].target_pid);
     //         } else {
-    //             printf("MAX ");
+    //             printf(" %d receives from %d | ", i, instructions[i][j].target_pid);
     //         }
     //     }
     //     printf("\n\n");
