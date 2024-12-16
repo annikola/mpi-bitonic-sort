@@ -2,9 +2,9 @@
 #include <stdlib.h>
 #include <time.h>
 
-#define P 16
+#define P 8
 #define Q 4
-#define REPS 5 // log(P) + 1
+#define REPS 4 // log(P) + 1
 #define TOTAL_REPS ((REPS - 1) * REPS / 2)
 
 #define MAX_INTEGER 100
@@ -13,37 +13,37 @@
 #define ASCENT 0
 #define DESCENT 1
 
+typedef struct {
+    char flow; // Sends (MIN) or receives (MAX)
+    char target_pid;
+} Instruction;
+
 int ipow(int base, int exp);
 int asc_compare(const void *a, const void *b);
 int desc_compare(const void *a, const void *b);
 void bitonic_swap(int *v1, int *v2, int idx);
-void elbow_merge();
 
 int main(int argc, char *argv[]) {
 
-    int i, j, t, h, m, n, k, s;
-    int A[P][Q + 1];
-    int uno_reverse, repetition, minmax_size, step, position;
-    int ascento[REPS][P];
-    int used[P];
+    int i, j, k;
+    int uno_reverse, repetition, step, position;
+    char ascento[REPS][P];
     char minmax[TOTAL_REPS][P];
+    int used[P];
+    int A[P][Q + 1];
+    Instruction instructions[TOTAL_REPS][P];
+
 
     srand(time(0));
 
-    // uno_reverse = 0;
+    // Initialize the array to be sorted with random integers
     // for (i = 0; i < P; i++) {
     //     for (j = 0; j < Q; j++) {
     //         A[i][j] = rand() % MAX_INTEGER + 1;
     //     }
-    //     if ((i + uno_reverse) % 2 == 0) {
-    //         A[i][Q] = MIN;
-    //         uno_reverse = 0;
-    //     } else {
-    //         A[i][Q] = MAX;
-    //         uno_reverse = 1;
-    //     }
     // }
 
+    // Constract the "truth" table for the directions (ascending - descending)
     repetition = 0;
     for (i = 1; i <= P; i *= 2) {
         uno_reverse = 0;
@@ -60,28 +60,34 @@ int main(int argc, char *argv[]) {
         repetition++;
     }
 
-    position = 0;
-    for (repetition = 0; repetition < REPS - 1; repetition++) {
+    // Using the above create the MIN-MAX and the instructions "truth" table
+    position = 0; // Position
+    for (repetition = 0; repetition < REPS - 1; repetition++) { // We have REPS "main" repetitions that involve sorting and TOTAL_REPS
+        step = ipow(2, repetition);                         // that involve all layers of merging
         for (i = 0; i < P; i++) {
+            // We split the elbow merging into two parts
+            // This is the first part - merging of the two elbows
             if (!ascento[repetition][i] && !ascento[repetition + 1][i]) {
-                // printf("MIN ");
                 minmax[position][i] = MIN;
+                instructions[position][i].flow = MIN;
+                instructions[position][i].target_pid = i + step;
             } else if (!ascento[repetition][i] && ascento[repetition + 1][i]) {
-                // printf("MAX ");
                 minmax[position][i] = MAX;
+                instructions[position][i].flow = MAX;
+                instructions[position][i].target_pid = i - step;
             } else if (ascento[repetition][i] && !ascento[repetition + 1][i]) {
-                // printf("MAX ");
                 minmax[position][i] = MAX;
+                instructions[position][i].flow = MAX;
+                instructions[position][i].target_pid = i - step;
             } else {
-                // printf("MIN ");
                 minmax[position][i] = MIN;
+                instructions[position][i].flow = MIN;
+                instructions[position][i].target_pid = i + step;
             }
         }
         position++;
-        // printf("\n");
 
-        // printf("repetition: %d\n", repetition);
-        // step = ipow(2, repetition); // half elbow
+        // This the second part - "inside" merging of the each part of the elbow
         for (j = 0; j < repetition; j++) {
             step = ipow(2, repetition - j) / 2;
             for (i = 0; i < P; i++) {
@@ -92,22 +98,27 @@ int main(int argc, char *argv[]) {
                     if (!ascento[repetition + 1][i]) {
                         minmax[position][i] = MIN;
                         minmax[position][i + step] = MAX;
-                        // printf("MIN%d MAX%d ", i, i + step);
+                        instructions[position][i].flow = MIN;
+                        instructions[position][i].target_pid = i + step;
+                        instructions[position][i + step].flow = MAX;
+                        instructions[position][i + step].target_pid = i;
                     } else {
                         minmax[position][i] = MAX;
                         minmax[position][i + step] = MIN;
-                        // printf("MAX%d MIN%d ", i, i + step);
+                        instructions[position][i].flow = MAX;
+                        instructions[position][i].target_pid = i + step;
+                        instructions[position][i + step].flow = MIN;
+                        instructions[position][i + step].target_pid = i;
                     }
-                    // printf("%d with %d\n", i, i + step);
                     used[i] = 1;
                     used[i + step] = 1;
                 }
             }
             position++;
-            // printf("\n");
         }
     }
 
+    // Print the directions "truth" table
     // for (i = 0; i < REPS; i++) {
     //     for (j = 0; j < P; j++) {
     //         printf("%d ", ascento[i][j]);
@@ -116,17 +127,19 @@ int main(int argc, char *argv[]) {
     // }
     // printf("\n");
 
-    for (i = 0; i < TOTAL_REPS; i++) {
-        for (j = 0; j < P; j++) {
-            if (!minmax[i][j]) {
-                printf("MIN ");
-            } else {
-                printf("MAX ");
-            }
-        }
-        printf("\n\n");
-    }
+    // Print the minmax "truth" table
+    // for (i = 0; i < TOTAL_REPS; i++) {
+    //     for (j = 0; j < P; j++) {
+    //         if (!minmax[i][j]) {
+    //             printf("MIN ");
+    //         } else {
+    //             printf("MAX ");
+    //         }
+    //     }
+    //     printf("\n\n");
+    // }
 
+    // Print the sorted array
     // printf("\n");
     // for (i = 0; i < P; i++) {
     //     for (j = 0; j < Q; j++) {
@@ -140,6 +153,7 @@ int main(int argc, char *argv[]) {
 }
 
 int ipow(int base, int exp) {
+
     int result = 1;
 
     for (;;) {
@@ -170,8 +184,4 @@ void bitonic_swap(int *v1, int *v2, int idx) {
     dummy = v1[idx];
     v1[idx] = v2[idx];
     v2[idx] = dummy;
-}
-
-void elbow_merge() {
-    ;
 }
