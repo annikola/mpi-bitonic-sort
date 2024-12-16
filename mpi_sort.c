@@ -2,18 +2,19 @@
 #include <stdlib.h>
 #include <time.h>
 
-#define P 8
-#define Q 4
-#define REPS 4 // log(P) + 1
+#define P 32
+#define Q 16
+#define REPS 6 // log(P) + 1
 #define TOTAL_REPS ((REPS - 1) * REPS / 2)
 
-#define MAX_INTEGER 100
+#define MAX_INTEGER 1000
 #define MIN 0
 #define MAX 1
 #define ASCENT 0
 #define DESCENT 1
 
 typedef struct {
+    char sort;
     char flow; // Sends (MIN) or receives (MAX)
     char target_pid;
 } Instruction;
@@ -29,18 +30,27 @@ int main(int argc, char *argv[]) {
     int uno_reverse, repetition, step, position;
     char ascento[REPS][P];
     int used[P];
-    int A[P][Q + 1];
+    int A[P][Q];
     Instruction instructions[TOTAL_REPS][P];
 
 
     srand(time(0));
 
     // Initialize the array to be sorted with random integers
-    // for (i = 0; i < P; i++) {
-    //     for (j = 0; j < Q; j++) {
-    //         A[i][j] = rand() % MAX_INTEGER + 1;
-    //     }
-    // }
+    for (i = 0; i < P; i++) {
+        for (j = 0; j < Q; j++) {
+            A[i][j] = rand() % MAX_INTEGER + 1;
+        }
+    }
+
+    // Print the array
+    for (i = 0; i < P; i++) {
+        for (j = 0; j < Q; j++) {
+            printf("%d ", A[i][j]);
+        }
+        printf("\n");
+    }
+    printf("\n");
 
     // Constract the "truth" table for the directions (ascending - descending)
     repetition = 0;
@@ -73,6 +83,7 @@ int main(int argc, char *argv[]) {
                 } else {
                     instructions[position][i].target_pid = i - step;
                 }
+                instructions[position][i].sort = ascento[repetition][i];
             } else if ((!ascento[repetition][i] && ascento[repetition + 1][i]) || (ascento[repetition][i] && !ascento[repetition + 1][i])) {
                 instructions[position][i].flow = MAX;
                 if (!ascento[repetition][i]) {
@@ -80,6 +91,7 @@ int main(int argc, char *argv[]) {
                 } else {
                     instructions[position][i].target_pid = i - step;
                 }
+                instructions[position][i].sort = ascento[repetition][i];
             }
         }
         position++;
@@ -97,11 +109,15 @@ int main(int argc, char *argv[]) {
                         instructions[position][i].target_pid = i + step;
                         instructions[position][i + step].flow = MAX;
                         instructions[position][i + step].target_pid = i;
+                        instructions[position][i].sort = 2;
+                        instructions[position][i + step].sort = 2;
                     } else {
                         instructions[position][i].flow = MAX;
                         instructions[position][i].target_pid = i + step;
                         instructions[position][i + step].flow = MIN;
                         instructions[position][i + step].target_pid = i;
+                        instructions[position][i].sort = 2;
+                        instructions[position][i + step].sort = 2;
                     }
                     used[i] = 1;
                     used[i + step] = 1;
@@ -111,36 +127,82 @@ int main(int argc, char *argv[]) {
         }
     }
 
-    // Print the directions "truth" table
-    // for (i = 0; i < REPS; i++) {
-    //     for (j = 0; j < P; j++) {
-    //         printf("%d ", ascento[i][j]);
-    //     }
-    //     printf("\n");
-    // }
-    // printf("\n");
+    // This part is the sorting that will be implemented in the MPI...
+    for (repetition = 0; repetition < TOTAL_REPS; repetition++) {
+        for (i = 0; i < P; i++) {
+            used[i] = 0;
+        }
+        for (i = 0; i < P; i++) {
+            if (!used[i]) {
+                // Lathos epeidh to ascento paei me ta vasika vimata
+                if (instructions[repetition][i].sort == ASCENT) { // If one must be sorted then both should...
+                    printf("(sorted %d ascending in position: %d)\n", i, repetition);
+                    qsort(A[i], Q, sizeof(int), asc_compare);
+                    printf("(sorted %d descending in position: %d)\n", instructions[repetition][i].target_pid, repetition);
+                    qsort(A[instructions[repetition][i].target_pid], Q, sizeof(int), desc_compare);
+                } else if (instructions[repetition][i].sort == DESCENT) {
+                    printf("(sorted %d descending in position: %d)\n", i, repetition);
+                    qsort(A[i], Q, sizeof(int), desc_compare);
+                    printf("(sorted %d ascending in position: %d)\n", instructions[repetition][i].target_pid, repetition);
+                    qsort(A[instructions[repetition][i].target_pid], Q, sizeof(int), asc_compare);
+                }
 
-    // Print the Instructions "truth" table
-    for (i = 0; i < TOTAL_REPS; i++) {
-        for (j = 0; j < P; j++) {
-            if (!instructions[i][j].flow) {
-                printf(" %d sends to %d | ", j, instructions[i][j].target_pid);
-            } else {
-                printf(" %d receives from %d | ", j, instructions[i][j].target_pid);
+                if (!instructions[repetition][i].flow) {
+                    printf(" %d sends to %d | ", i, instructions[repetition][i].target_pid);
+                    for (k = 0; k < Q; k++) {
+                        if (A[i][k] > A[instructions[repetition][i].target_pid][k]) {
+                            bitonic_swap(A[i], A[instructions[repetition][i].target_pid], k);
+                        }
+                    }
+                } else {
+                    printf(" %d receives from %d | ", i, instructions[repetition][i].target_pid);
+                    for (k = 0; k < Q; k++) {
+                        if (A[i][k] < A[instructions[repetition][i].target_pid][k]) {
+                            bitonic_swap(A[i], A[instructions[repetition][i].target_pid], k);
+                        }
+                    }
+                }
+                used[i] = 1;
+                used[instructions[repetition][i].target_pid] = 1;
             }
         }
-        printf("\n\n");
+        printf("\n");
     }
 
-    // Print the sorted array
-    // printf("\n");
-    // for (i = 0; i < P; i++) {
-    //     for (j = 0; j < Q; j++) {
-    //         printf("%d ", A[i][j]);
+    // Sort the final array
+    for (i = 0; i < P; i++) {
+        qsort(A[i], Q, sizeof(int), asc_compare);
+    }
+
+    // Print the directions "truth" table
+    for (i = 0; i < REPS; i++) {
+        for (j = 0; j < P; j++) {
+            printf("%d ", ascento[i][j]);
+        }
+        printf("\n");
+    }
+    printf("\n");
+
+    // Print the Instructions "truth" table
+    // for (j = 0; j < TOTAL_REPS; j++) {
+    //     for (i = 0; i < P; i++) {
+    //         if (!instructions[j][i].flow) {
+    //             printf(" %d sends to %d | ", i, instructions[j][i].target_pid);
+    //         } else {
+    //             printf(" %d receives from %d | ", i, instructions[j][i].target_pid);
+    //         }
     //     }
-    //     printf("\n");
+    //     printf("\n\n");
     // }
-    // printf("\n");
+
+    // Print the sorted array
+    for (i = 0; i < P; i++) {
+        for (j = 0; j < Q; j++) {
+            printf("%d ", A[i][j]);
+        }
+        printf("\n");
+    }
+    printf("\n");
 
     return 0;
 }
