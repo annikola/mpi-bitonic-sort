@@ -12,7 +12,7 @@ typedef struct {
     char target_pid;
 } Instruction;
 
-int mpi_bitonic_warmup();
+int mpi_bitonic_warmup(int p, int reps, int total_reps);
 int ipow(int base, int exp);
 
 #endif // V_BITONIC_SORT_H
