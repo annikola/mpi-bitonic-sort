@@ -1,12 +1,17 @@
 #include "../include/vectoral_bitonic_sort.h"
 
-int mpi_bitonic_warmup(int p, int reps, int total_reps) {
+Instruction **mpi_bitonic_warmup(int p, int reps, int total_reps) {
 
     int i, j, k;
     int uno_reverse, repetition, step, position;
     char ascento[reps][p];
     int used[p];
-    Instruction instructions[total_reps][p];
+    Instruction **instructions;
+
+    instructions = (Instruction **)malloc(total_reps * sizeof(Instruction *));
+    for (i = 0; i < total_reps; i++) {
+        instructions[i] = (Instruction *)malloc(p * sizeof(Instruction));
+    }
 
     // Constract the "truth" table for the directions (ascending - descending)
     repetition = 0;
@@ -83,7 +88,7 @@ int mpi_bitonic_warmup(int p, int reps, int total_reps) {
         }
     }
 
-    return 0;
+    return instructions;
 }
 
 int ipow(int base, int exp) {

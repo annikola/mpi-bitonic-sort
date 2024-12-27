@@ -7,9 +7,9 @@
 ******************************************************************************/
 
 #include "mpi.h"
-#include "../include/vectoral_bitonic_sort.h"
 #include <stdio.h>
 #include <stdlib.h>
+#include "../include/vectoral_bitonic_sort.h"
 
 #define MASTER 0
 #define MIN_ARGS 2
@@ -22,9 +22,11 @@ int log_base_2(int arg);
 
 int main (int argc, char *argv[]) {
 
+    int i, j;
     int numtasks, taskid, len;
-    int p, q, reps, total_reps;
+    int p, q, total_proc, reps, total_reps;
     char hostname[MPI_MAX_PROCESSOR_NAME];
+    Instruction **instructions;
 
     if (argc < MIN_ARGS + 1) {
         printf("Missing %d argument(s)\n", MIN_ARGS + 1 - argc);
@@ -42,10 +44,30 @@ int main (int argc, char *argv[]) {
         return 1;
     }
 
+    total_proc = ipow(2, p);
     reps = p + 1;
     total_reps = ((reps - 1) * reps) / 2;
+    instructions = mpi_bitonic_warmup(total_proc, reps, total_reps);
 
-    mpi_bitonic_warmup(ipow(2, p), reps, total_reps);
+    // Print the Instructions "truth" table
+    for (j = 0; j < total_proc; j++) {
+        printf("For process %d\n", j);
+        printf("--------------\n");
+        for (i = 0; i < total_reps; i++) {
+            if (instructions[i][j].sort == ASCENT) {
+                printf("sort elements of %d ascending\n", j);
+            } else if (instructions[i][j].sort == DESCENT) {
+                printf("sort elements of %d descending\n", j);
+            }
+
+            if (!instructions[i][j].flow) {
+                printf("%d sends to %d\n", j, instructions[i][j].target_pid);
+            } else {
+                printf("%d receives from %d\n", j, instructions[i][j].target_pid);
+            }
+        }
+        printf("\n\n");
+    }
 
     MPI_Init(&argc, &argv);
     MPI_Comm_size(MPI_COMM_WORLD, &numtasks);
