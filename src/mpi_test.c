@@ -16,12 +16,11 @@
 #define MIN_ARGS 2
 #define MIN_P 1
 #define MAX_P 7
-#define MIN_Q 2
+#define MIN_Q 20
 #define MAX_Q 27
 
-#define MAX_INTEGER 100000
+#define MAX_INTEGER 1000000
 
-int log_base_2(int arg);
 int asc_compare(const void *a, const void *b);
 int desc_compare(const void *a, const void *b);
 void bitonic_swap(int *v1, int *v2, int idx);
@@ -108,32 +107,16 @@ int main (int argc, char *argv[]) {
     }
 
     // printf("sort elements of %d ascending\n", taskid);
-    qsort(A, Q, sizeof(int), asc_compare);
-    printf("%d HAS ", taskid);
-    for (int m = 0; m < Q; m++) {
-        printf("%d ", A[m]);
-    }
-    printf("\n");
+    // qsort(A, Q, sizeof(int), asc_compare);
+    // printf("%d HAS ", taskid);
+    // for (int m = 0; m < Q; m++) {
+    //     printf("%d ", A[m]);
+    // }
+    // printf("\n");
 
     MPI_Finalize();
 
     return 0;
-}
-
-int log_base_2(int arg) {
-
-    int result;
-
-    result = 0;
-    while (arg > 1) {
-        if (!(arg % 2)) {
-            return -1;
-        }
-        arg /= 2;
-        result++;
-    }
-
-    return result;
 }
 
 int asc_compare(const void *a, const void *b) {
