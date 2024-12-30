@@ -63,57 +63,51 @@ int main (int argc, char *argv[]) {
     MPI_Comm_size(MPI_COMM_WORLD, &numtasks);
     MPI_Comm_rank(MPI_COMM_WORLD, &taskid);
     MPI_Get_processor_name(hostname, &len);
-    printf ("Hello from task %d on %s!\n", taskid, hostname);
-    fflush(stdout);
+    // printf ("Hello from task %d on %s!\n", taskid, hostname);
 
     B = (int *)malloc(Q * sizeof(int));
     A = (int *)malloc(Q * sizeof(int));
     for (i = 0; i < Q; i++) {
         A[i] = rand() % MAX_INTEGER + 1;
     }
-    printf("%d HAS ", taskid);
-    for (int m = 0; m < Q; m++) {
-        printf("%d ", A[m]);
-    }
-    printf("\n");
+    // printf("%d HAS ", taskid);
+    // for (int m = 0; m < Q; m++) {
+    //     printf("%d ", A[m]);
+    // }
+    // printf("\n");
     MPI_Barrier(MPI_COMM_WORLD);
 
     for (i = 0; i < total_reps; i++) {
         if (instructions[i][taskid].sort == ASCENT) {
-            printf("sort elements of %d ascending\n", taskid);
+            // printf("sort elements of %d ascending\n", taskid);
             qsort(A, Q, sizeof(int), asc_compare);
         } else if (instructions[i][taskid].sort == DESCENT) {
-            printf("sort elements of %d descending\n", taskid);
+            // printf("sort elements of %d descending\n", taskid);
             qsort(A, Q, sizeof(int), desc_compare);
         }
 
         if (!instructions[i][taskid].flow) {
             MPI_Send(A, Q, MPI_INT, instructions[i][taskid].target_pid, 0, MPI_COMM_WORLD);
-            printf("%d SENT TO %d at %ld\n", taskid, instructions[i][taskid].target_pid, clock());
+            // printf("%d SENT TO %d at %ld\n", taskid, instructions[i][taskid].target_pid, clock());
             MPI_Recv(B, Q, MPI_INT, instructions[i][taskid].target_pid, 0, MPI_COMM_WORLD, MPI_STATUS_IGNORE);
-            // printf("%d RECEIVED ", taskid);
-            // for (int m = 0; m < Q; m++) {
-            //     printf("%d ", B[m]);
-            // }
-            // printf("at %ld\n", clock());
-            // for (k = 0; k < Q; k++) {
-            //     if (A[k] > A[instructions[i][taskid].target_pid][k]) {
-            //         bitonic_swap(A[i], A[instructions[repetition][i].target_pid], k);
-            //     }
-            // }
+            for (k = 0; k < Q; k++) {
+                if (A[k] > B[k]) {
+                    bitonic_swap(A, B, k);
+                }
+            }
         } else {
             MPI_Recv(B, Q, MPI_INT, instructions[i][taskid].target_pid, 0, MPI_COMM_WORLD, MPI_STATUS_IGNORE);
-            // printf("%d RECEIVED ", taskid);
-            // for (int m = 0; m < Q; m++) {
-            //     printf("%d ", B[m]);
-            // }
-            // printf("at %ld\n", clock());
             MPI_Send(A, Q, MPI_INT, instructions[i][taskid].target_pid, 0, MPI_COMM_WORLD);
-            printf("%d SENT TO %d at %ld\n", taskid, instructions[i][taskid].target_pid, clock());
+            for (k = 0; k < Q; k++) {
+                if (A[k] < B[k]) {
+                    bitonic_swap(A, B, k);
+                }
+            }
+            // printf("%d SENT TO %d at %ld\n", taskid, instructions[i][taskid].target_pid, clock());
         }
     }
 
-    printf("sort elements of %d ascending\n", taskid);
+    // printf("sort elements of %d ascending\n", taskid);
     qsort(A, Q, sizeof(int), asc_compare);
     printf("%d HAS ", taskid);
     for (int m = 0; m < Q; m++) {
