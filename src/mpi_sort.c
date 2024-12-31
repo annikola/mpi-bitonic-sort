@@ -202,17 +202,12 @@ int main(int argc, char *argv[]) {
 
 int ipow(int base, int exp) {
 
-    int result = 1;
+    int i;
+    int result;
 
-    for (;;) {
-        if (exp & 1) {
-            result *= base;
-        }
-        exp >>= 1;
-        if (!exp) {
-            break;
-        }
-        base *= base;
+    result = 1;
+    for (i = 0; i < exp; i++) {
+        result *= base;
     }
 
     return result;
