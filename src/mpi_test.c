@@ -1,11 +1,3 @@
-/******************************************************************************
-* FILE: mpi_hello.c
-* DESCRIPTION:
-*   MPI tutorial example code: Simple hello world program
-* AUTHOR: Blaise Barney
-* LAST REVISED: 03/05/10
-******************************************************************************/
-
 #include "mpi.h"
 #include <stdio.h>
 #include <stdlib.h>
@@ -16,13 +8,15 @@
 #define MIN_ARGS 2
 #define MIN_P 1
 #define MAX_P 7
-#define MIN_Q 20
+#define MIN_Q 2
 #define MAX_Q 27
 
 #define MAX_INTEGER 1000000
 
 int asc_compare(const void *a, const void *b);
 int desc_compare(const void *a, const void *b);
+void swap(int *a, int *b);
+void bitonic_merge(int *arr, int low, int count, int direction);
 void bitonic_swap(int *v1, int *v2, int idx);
 
 int main (int argc, char *argv[]) {
@@ -79,10 +73,12 @@ int main (int argc, char *argv[]) {
     for (i = 0; i < total_reps; i++) {
         if (instructions[i][taskid].sort == ASCENT) {
             // printf("sort elements of %d ascending\n", taskid);
-            qsort(A, Q, sizeof(int), asc_compare);
+            // qsort(A, Q, sizeof(int), asc_compare);
+            bitonic_merge(A, 0, Q, 1);
         } else if (instructions[i][taskid].sort == DESCENT) {
             // printf("sort elements of %d descending\n", taskid);
-            qsort(A, Q, sizeof(int), desc_compare);
+            // qsort(A, Q, sizeof(int), desc_compare);
+            bitonic_merge(A, 0, Q, 0);
         }
 
         if (!instructions[i][taskid].flow) {
@@ -107,12 +103,12 @@ int main (int argc, char *argv[]) {
     }
 
     // printf("sort elements of %d ascending\n", taskid);
-    // qsort(A, Q, sizeof(int), asc_compare);
-    // printf("%d HAS ", taskid);
-    // for (int m = 0; m < Q; m++) {
-    //     printf("%d ", A[m]);
-    // }
-    // printf("\n");
+    bitonic_merge(A, 0, Q, 1);
+    printf("%d HAS ", taskid);
+    for (int m = 0; m < Q; m++) {
+        printf("%d ", A[m]);
+    }
+    printf("\n");
 
     MPI_Finalize();
 
@@ -125,6 +121,30 @@ int asc_compare(const void *a, const void *b) {
 
 int desc_compare(const void *a, const void *b) {
     return (*(int *)b - *(int *)a);
+}
+
+void swap(int *a, int *b) {
+    int temp = *a;
+    *a = *b;
+    *b = temp;
+}
+
+void bitonic_merge(int *arr, int low, int count, int direction) {
+    if (count > 1) {
+        int mid = count / 2;
+
+        // Compare and swap elements
+        for (int i = low; i < low + mid; i++) {
+            if ((direction == 1 && arr[i] > arr[i + mid]) ||
+                (direction == 0 && arr[i] < arr[i + mid])) {
+                swap(&arr[i], &arr[i + mid]);
+            }
+        }
+
+        // Recursively sort the two halves
+        bitonic_merge(arr, low, mid, direction);
+        bitonic_merge(arr, low + mid, mid, direction);
+    }
 }
 
 void bitonic_swap(int *v1, int *v2, int idx) {
