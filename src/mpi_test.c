@@ -8,7 +8,7 @@
 #define MIN_ARGS 2
 #define MIN_P 1
 #define MAX_P 7
-#define MIN_Q 2
+#define MIN_Q 20
 #define MAX_Q 27
 
 #define MAX_INTEGER 1000000
@@ -104,11 +104,11 @@ int main (int argc, char *argv[]) {
 
     // printf("sort elements of %d ascending\n", taskid);
     bitonic_merge(A, 0, Q, 1);
-    printf("%d HAS ", taskid);
-    for (int m = 0; m < Q; m++) {
-        printf("%d ", A[m]);
-    }
-    printf("\n");
+    // printf("%d HAS ", taskid);
+    // for (int m = 0; m < Q; m++) {
+    //     printf("%d ", A[m]);
+    // }
+    // printf("\n");
 
     MPI_Finalize();
 
