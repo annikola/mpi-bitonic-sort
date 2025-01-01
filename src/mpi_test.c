@@ -17,7 +17,7 @@ int asc_compare(const void *a, const void *b);
 int desc_compare(const void *a, const void *b);
 // void swap(int *a, int *b);
 int array_compare(int *arr1, int *arr2, int n);
-void elbow_sort(int *arr, int n);
+void elbow_sort(int *arr, int n, int flow);
 void reverse(int *arr, int start, int end);
 void rotate_left(int *arr, int n, int k);
 void reform_bitonic(int *arr, int n);
@@ -67,32 +67,19 @@ int main (int argc, char *argv[]) {
     for (i = 0; i < Q; i++) {
         A[i] = rand() % MAX_INTEGER + 1;
     }
-    // printf("%d HAS ", taskid);
-    // for (int m = 0; m < Q; m++) {
-    //     printf("%d ", A[m]);
-    // }
-    // printf("\n");
-    // printf("\n");
+    
     MPI_Barrier(MPI_COMM_WORLD);
 
     for (i = 0; i < total_reps; i++) {
         if (instructions[i][taskid].sort == ASCENT && i == 0) {
             qsort(A, Q, sizeof(int), asc_compare);
         } else if (instructions[i][taskid].sort == ASCENT && i > 0){
-            reform_bitonic(A, Q);
-            elbow_sort(A, Q);
+            elbow_sort(A, Q, ASCENT);
         } else if (instructions[i][taskid].sort == DESCENT && i == 0) {
             qsort(A, Q, sizeof(int), desc_compare);
         } else if (instructions[i][taskid].sort == DESCENT && i > 0) {
-            reform_bitonic(A, Q);
-            elbow_sort(A, Q);
-            qsort(A, Q, sizeof(int), desc_compare);
+            elbow_sort(A, Q, DESCENT);
         }
-        printf("%d HAS ", taskid);
-        for (int m = 0; m < Q; m++) {
-            printf("%d ", A[m]);
-        }
-        printf("i = %d\n", i);
 
         if (!instructions[i][taskid].flow) {
             MPI_Send(A, Q, MPI_INT, instructions[i][taskid].target_pid, 0, MPI_COMM_WORLD);
@@ -113,27 +100,16 @@ int main (int argc, char *argv[]) {
             }
             // printf("%d SENT TO %d at %ld\n", taskid, instructions[i][taskid].target_pid, clock());
         }
-        printf("%d HAS ", taskid);
-        for (int m = 0; m < Q; m++) {
-            printf("%d ", A[m]);
-        }
-        printf("i = %d\n", i);
     }
 
     // printf("sort elements of %d ascending\n", taskid);
-    reform_bitonic(A, Q);
-    printf("%d HAS ", taskid);
-    for (int m = 0; m < Q; m++) {
-        printf("%d ", A[m]);
-    }
-    printf("\nbef\n");
-    elbow_sort(A, Q);
-    printf("%d HAS ", taskid);
-    for (int m = 0; m < Q; m++) {
-        printf("%d ", A[m]);
-        B[m] = A[m];
-    }
-    printf("\naf\n");
+    elbow_sort(A, Q, ASCENT);
+    // printf("%d HAS ", taskid);
+    // for (int m = 0; m < Q; m++) {
+    //     printf("%d ", A[m]);
+    //     B[m] = A[m];
+    // }
+    // printf("\n");
 
     qsort(A, Q, sizeof(int), asc_compare);
     if (array_compare(A, B, Q)) {
@@ -168,13 +144,13 @@ int array_compare(int *arr1, int *arr2, int n) {
     return 1;
 }
 
-void elbow_sort(int *arr, int n) {
+void elbow_sort(int *arr, int n, int flow) {
 
     int i, t;
     int peak, low, high;
     int *temp;
 
-    // MPOROUME PIO GRIGORA APO O(5*n/2) AN EXOUME DUPLICATES???
+    // MPOROUME PIO GRIGORA APO O(5*n/2 + n(pisw sto kanoniko array)) AN EXOUME DUPLICATES???
     
     reform_bitonic(arr, n);
 
@@ -220,8 +196,14 @@ void elbow_sort(int *arr, int n) {
     temp[t] = arr[peak];
 
     // Storing all elements of the temporary array back in the original array
-    for (i = 0; i < n; i++) {
-        arr[i] = temp[i];
+    if (!flow) {
+        for (i = 0; i < n; i++) {
+            arr[i] = temp[i];
+        }
+    } else {
+        for (i = 0; i < n; i++) {
+            arr[i] = temp[n - i - 1];
+        }
     }
 
     free(temp);
