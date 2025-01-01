@@ -3,7 +3,7 @@ CC = mpicc
 CFLAGS = -O2 -I include
 
 # Binary: mpi_test
-SRC_mpi_bitonic_sort = src/mpi_bitonic_sort_prephase.c src/mpi_test.c
+SRC_mpi_bitonic_sort = src/mpi_bitonic_sort_prephase.c src/bitonic_sequence_helpers.c src/mpi_bitonic_sort.c
 OBJ_mpi_bitonic_sort = $(SRC_mpi_bitonic_sort:src/%.c=build/%.o)
 BIN_mpi_bitonic_sort = build/mpi_bitonic_sort
 

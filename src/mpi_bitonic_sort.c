@@ -3,12 +3,13 @@
 #include <stdlib.h>
 #include <time.h>
 #include "../include/vectoral_bitonic_sort.h"
+#include "../include/bitonic_sequence_helpers.h"
 
 #define MASTER 0
 #define MIN_ARGS 2
 #define MIN_P 1
 #define MAX_P 7
-#define MIN_Q 2
+#define MIN_Q 20
 #define MAX_Q 27
 
 #define MAX_INTEGER 100
@@ -17,10 +18,6 @@ int asc_compare(const void *a, const void *b);
 int desc_compare(const void *a, const void *b);
 // void swap(int *a, int *b);
 int array_compare(int *arr1, int *arr2, int n);
-void elbow_sort(int *arr, int n, int flow);
-void reverse(int *arr, int start, int end);
-void rotate_left(int *arr, int n, int k);
-void reform_bitonic(int *arr, int n);
 void bitonic_swap(int *v1, int *v2, int idx);
 
 int main (int argc, char *argv[]) {
@@ -30,6 +27,7 @@ int main (int argc, char *argv[]) {
     int p, q, Q, total_proc, reps, total_reps;
     char hostname[MPI_MAX_PROCESSOR_NAME];
     int *A, *B;
+    double start_time, end_time;
     Instruction **instructions;
 
     if (argc < MIN_ARGS + 1) {
@@ -47,6 +45,8 @@ int main (int argc, char *argv[]) {
         printf("Please insert a value for q between %d and %d\n", MIN_Q, MAX_Q);
         return 1;
     }
+
+    start_time = MPI_Wtime();
 
     srand(time(0) + taskid);
 
@@ -110,12 +110,15 @@ int main (int argc, char *argv[]) {
 
     // printf("sort elements of %d ascending\n", taskid);
     elbow_sort(A, Q, ASCENT);
+    MPI_Barrier(MPI_COMM_WORLD);
+    end_time = MPI_Wtime();
+    printf("Total MPI Bitonic Sort time: %lf\n", end_time - start_time);
     // printf("%d HAS ", taskid);
     for (int m = 0; m < Q; m++) {
         // printf("%d ", A[m]);
         B[m] = A[m];
     }
-    printf("\n");
+    // printf("\n");
 
     qsort(A, Q, sizeof(int), asc_compare);
     if (array_compare(A, B, Q)) {
@@ -148,110 +151,6 @@ int array_compare(int *arr1, int *arr2, int n) {
     }
 
     return 1;
-}
-
-void elbow_sort(int *arr, int n, int flow) {
-
-    int i, t;
-    int peak, low, high;
-    int *temp;
-
-    // MPOROUME PIO GRIGORA APO O(5*n/2 + n(pisw sto kanoniko array)) AN EXOUME DUPLICATES???
-    
-    reform_bitonic(arr, n);
-
-    // Here we find the peak of the standard form bitonic
-    // by taking advantage of the fact that we always start
-    // traversing the not descending part
-    peak = -1;
-    for (i = 1; i < n - 1; i++) {
-        if (arr[i] > arr[i + 1]) {
-            peak = i;
-            break;
-        }
-    }
-    // printf("PEAK: %d %d\n", peak, arr[peak]);
-    
-    // If no peak was found then the whole sequence
-    // is either not ascending or not descending
-    if (peak == -1 && arr[0] <= arr[n - 1]) {
-        return;
-    } else if (peak == -1 && arr[0] > arr[n - 1]) {
-        reverse(arr, 0, n - 1);
-        return;
-    }
-
-    // Temporary array to store the sorted elements
-    temp = (int *)malloc(n * sizeof(int));
-
-    // Merging both the sorted arrays before and after the peak element
-    low = 0;
-    high = n - 1;
-    t = 0;
-    while (low != high) {
-        // Storing the smaller value element in the temp array
-        if (arr[low] < arr[high]) {
-            temp[t] = arr[low];
-            t++;
-            low++;
-        } else {
-            temp[t] = arr[high];
-            t++;
-            high--;
-        }
-    }
-    temp[t] = arr[peak];
-
-    // Storing all elements of the temporary array back in the original array
-    if (!flow) {
-        for (i = 0; i < n; i++) {
-            arr[i] = temp[i];
-        }
-    } else {
-        for (i = 0; i < n; i++) {
-            arr[i] = temp[n - i - 1];
-        }
-    }
-
-    free(temp);
-}
-
-void reform_bitonic(int *arr, int n) {
-
-    int k, steep;
-
-    steep = arr[0];
-    k = 1;
-    while (k < n - 1) {
-        if (arr[k] < steep && arr[k] < arr[k + 1]) {
-            rotate_left(arr, n, k);
-            break;
-        } else if (arr[k] < steep && arr[k] == arr[k + 1]) {
-            k++;
-        } else {
-            steep = arr[k];
-            k++;
-        }
-    }
-}
-
-void reverse(int *arr, int start, int end) {
-
-    while (start < end) {
-        int temp = arr[start];
-        arr[start] = arr[end];
-        arr[end] = temp;
-        start++;
-        end--;
-    }
-}
-
-// Function to perform left rotation of the array by k positions
-void rotate_left(int *arr, int n, int k) {
-
-    reverse(arr, 0, k - 1);    // Reverse the first part
-    reverse(arr, k, n - 1);    // Reverse the second part
-    reverse(arr, 0, n - 1);    // Reverse the whole array
 }
 
 void bitonic_swap(int *v1, int *v2, int idx) {
