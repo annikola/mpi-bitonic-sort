@@ -21,10 +21,12 @@ void reform_bitonic(int *arr, int n) {
 
 void reverse(int *arr, int start, int end) {
 
+    int dummy;
+
     while (start < end) {
-        int temp = arr[start];
+        dummy = arr[start];
         arr[start] = arr[end];
-        arr[end] = temp;
+        arr[end] = dummy;
         start++;
         end--;
     }
@@ -82,8 +84,7 @@ void elbow_sort(int *arr, int n, int flow) {
     low = 0;
     high = n - 1;
     t = 0;
-    while (low != high) {
-        // Storing the smaller value element in the temp array
+    while (low != high) { // Either low or high gets "stuck" in peak
         if (arr[low] < arr[high]) {
             temp[t] = arr[low];
             t++;
@@ -97,12 +98,10 @@ void elbow_sort(int *arr, int n, int flow) {
     temp[t] = arr[peak];
 
     // Storing all elements of the temporary array back in the original array
-    if (!flow) {
-        for (i = 0; i < n; i++) {
+    for (i = 0; i < n; i++) {
+        if (!flow) {
             arr[i] = temp[i];
-        }
-    } else {
-        for (i = 0; i < n; i++) {
+        } else {
             arr[i] = temp[n - i - 1];
         }
     }
