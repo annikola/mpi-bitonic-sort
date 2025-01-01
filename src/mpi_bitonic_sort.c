@@ -12,7 +12,7 @@
 #define MIN_Q 20
 #define MAX_Q 27
 
-#define MAX_INTEGER 100
+#define MAX_INTEGER 100000
 
 int asc_compare(const void *a, const void *b);
 int desc_compare(const void *a, const void *b);
