@@ -100,16 +100,22 @@ int main (int argc, char *argv[]) {
             }
             // printf("%d SENT TO %d at %ld\n", taskid, instructions[i][taskid].target_pid, clock());
         }
+
+        // printf("AT i == %d, %d HAS ", i, taskid);
+        // for (int m = 0; m < Q; m++) {
+        //     printf("%d,", A[m]);
+        // }
+        // printf("\n");
     }
 
     // printf("sort elements of %d ascending\n", taskid);
     elbow_sort(A, Q, ASCENT);
     // printf("%d HAS ", taskid);
-    // for (int m = 0; m < Q; m++) {
-    //     printf("%d ", A[m]);
-    //     B[m] = A[m];
-    // }
-    // printf("\n");
+    for (int m = 0; m < Q; m++) {
+        // printf("%d ", A[m]);
+        B[m] = A[m];
+    }
+    printf("\n");
 
     qsort(A, Q, sizeof(int), asc_compare);
     if (array_compare(A, B, Q)) {
@@ -164,6 +170,7 @@ void elbow_sort(int *arr, int n, int flow) {
             break;
         }
     }
+    // printf("PEAK: %d %d\n", peak, arr[peak]);
     
     // If no peak was found then the whole sequence
     // is either not ascending or not descending
@@ -181,7 +188,7 @@ void elbow_sort(int *arr, int n, int flow) {
     low = 0;
     high = n - 1;
     t = 0;
-    while (low <= peak && high >= peak) {
+    while (low != high) {
         // Storing the smaller value element in the temp array
         if (arr[low] < arr[high]) {
             temp[t] = arr[low];
