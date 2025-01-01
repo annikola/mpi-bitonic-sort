@@ -15,8 +15,9 @@
 
 int asc_compare(const void *a, const void *b);
 int desc_compare(const void *a, const void *b);
-void swap(int *a, int *b);
-void sortArr(int *arr, int n);
+// void swap(int *a, int *b);
+int array_compare(int *arr1, int *arr2, int n);
+void elbow_sort(int *arr, int n);
 void reverse(int *arr, int start, int end);
 void rotate_left(int *arr, int n, int k);
 void reform_bitonic(int *arr, int n);
@@ -79,19 +80,19 @@ int main (int argc, char *argv[]) {
             qsort(A, Q, sizeof(int), asc_compare);
         } else if (instructions[i][taskid].sort == ASCENT && i > 0){
             reform_bitonic(A, Q);
-            sortArr(A, Q);
+            elbow_sort(A, Q);
         } else if (instructions[i][taskid].sort == DESCENT && i == 0) {
             qsort(A, Q, sizeof(int), desc_compare);
         } else if (instructions[i][taskid].sort == DESCENT && i > 0) {
             reform_bitonic(A, Q);
-            sortArr(A, Q);
+            elbow_sort(A, Q);
             qsort(A, Q, sizeof(int), desc_compare);
         }
-        // printf("%d HAS ", taskid);
-        // for (int m = 0; m < Q; m++) {
-        //     printf("%d ", A[m]);
-        // }
-        // printf("i = %d\n", i);
+        printf("%d HAS ", taskid);
+        for (int m = 0; m < Q; m++) {
+            printf("%d ", A[m]);
+        }
+        printf("i = %d\n", i);
 
         if (!instructions[i][taskid].flow) {
             MPI_Send(A, Q, MPI_INT, instructions[i][taskid].target_pid, 0, MPI_COMM_WORLD);
@@ -112,21 +113,34 @@ int main (int argc, char *argv[]) {
             }
             // printf("%d SENT TO %d at %ld\n", taskid, instructions[i][taskid].target_pid, clock());
         }
-        // printf("%d HAS ", taskid);
-        // for (int m = 0; m < Q; m++) {
-        //     printf("%d ", A[m]);
-        // }
-        // printf("i = %d\n", i);
+        printf("%d HAS ", taskid);
+        for (int m = 0; m < Q; m++) {
+            printf("%d ", A[m]);
+        }
+        printf("i = %d\n", i);
     }
 
     // printf("sort elements of %d ascending\n", taskid);
     reform_bitonic(A, Q);
-    sortArr(A, Q);
     printf("%d HAS ", taskid);
     for (int m = 0; m < Q; m++) {
         printf("%d ", A[m]);
     }
-    printf("\n");
+    printf("\nbef\n");
+    elbow_sort(A, Q);
+    printf("%d HAS ", taskid);
+    for (int m = 0; m < Q; m++) {
+        printf("%d ", A[m]);
+        B[m] = A[m];
+    }
+    printf("\naf\n");
+
+    qsort(A, Q, sizeof(int), asc_compare);
+    if (array_compare(A, B, Q)) {
+        printf("Correctly Sorted!\n");
+    } else {
+        printf("Falsely Sorted!\n");
+    }
 
     MPI_Finalize();
 
@@ -141,91 +155,93 @@ int desc_compare(const void *a, const void *b) {
     return (*(int *)b - *(int *)a);
 }
 
-void sortArr(int* arr, int n) {
+int array_compare(int *arr1, int *arr2, int n) {
 
-    // Temporary array to store the sorted elements
-    int *tmp = (int *)malloc(n * sizeof(int));
+    int i;
+
+    for (i = 0; i < n; i++) {
+        if (arr1[i] != arr2[i]) {
+            return 0;
+        }
+    }
+
+    return 1;
+}
+
+void elbow_sort(int *arr, int n) {
+
+    int i, t;
+    int peak, low, high;
+    int *temp;
+
+    // MPOROUME PIO GRIGORA APO O(5*n/2) AN EXOUME DUPLICATES???
     
-    // Index of peak element in the bitonic array
-    int peak = -1;
-    int low = 0;
-    int high = n - 1;
-    int k = 0;
- 
-    // Modified Binary search to find the index of peak element
-    while (low <= high){
- 
-        int mid = (low + high) / 2;
- 
-        // Condition for checking element at index mid is peak element or not
-        if (( mid == 0 || arr[mid - 1] <= arr[mid] ) && 
-            ( mid == n - 1 || arr[mid + 1] < arr[mid] )){
-            peak = mid;
+    reform_bitonic(arr, n);
+
+    // Here we find the peak of the standard form bitonic
+    // by taking advantage of the fact that we always start
+    // traversing the not descending part
+    peak = -1;
+    for (i = 1; i < n - 1; i++) {
+        if (arr[i] > arr[i + 1]) {
+            peak = i;
             break;
         }
-
-        // If elements before mid element
-        // are in increasing order it means
-        // peak is present after the mid index
-        if (arr[mid] < arr[mid + 1])
-            low = mid + 1;
-             
-        // If elements after mid element
-        // are in decreasing order it means
-        // peak is present before the mid index
-        else
-            high = mid - 1;
     }
-    // printf("PEAK: %d\n", arr[peak]);
+    
+    // If no peak was found then the whole sequence
+    // is either not ascending or not descending
+    if (peak == -1 && arr[0] <= arr[n - 1]) {
+        return;
+    } else if (peak == -1 && arr[0] > arr[n - 1]) {
+        reverse(arr, 0, n - 1);
+        return;
+    }
+
+    // Temporary array to store the sorted elements
+    temp = (int *)malloc(n * sizeof(int));
 
     // Merging both the sorted arrays before and after the peak element
     low = 0;
     high = n - 1;
-
-    // Loop until any of both arrays is exhausted
-    while (low <= peak && high > peak) {
-        // Storing the smaller value element in the tmp array
+    t = 0;
+    while (low <= peak && high >= peak) {
+        // Storing the smaller value element in the temp array
         if (arr[low] < arr[high]) {
-            tmp[k] = arr[low];
-            k++;
+            temp[t] = arr[low];
+            t++;
             low++;
         } else {
-            tmp[k] = arr[high];
-            k++;
+            temp[t] = arr[high];
+            t++;
             high--;
         }
     }
+    temp[t] = arr[peak];
 
-    // Storing remaining elements of the array which are present before the peak element in tmp array
-    while (low <= peak) {
-        tmp[k] = arr[low];
-        k++;
-        low++;
+    // Storing all elements of the temporary array back in the original array
+    for (i = 0; i < n; i++) {
+        arr[i] = temp[i];
     }
 
-    // Storing remaining elements of the array which are present after the peak element in tmp array
-    while (high > peak) {
-        tmp[k] = arr[high];
-        k++;
-        high--;
-    }
-
-    // Storing all elements of the tmp array back in the original array
-    for (int i = 0; i < n; i++) {
-        arr[i] = tmp[i];
-    }
-
-    free(tmp);
+    free(temp);
 }
 
 void reform_bitonic(int *arr, int n) {
 
-    int i;
+    int k, steep;
 
-    for (i = 1; i < n - 1; i++) {
-        if (arr[i] <= arr[i - 1] && arr[i] < arr[i + 1]) {
-            rotate_left(arr, n, i);
+    steep = arr[0];
+    k = 1;
+    while (k < n - 1) {
+        if (arr[k] < steep && arr[k] < arr[k + 1]) {
+            rotate_left(arr, n, k);
             break;
+        } else if (arr[k] < steep && arr[k] == arr[k + 1]) {
+            k++;
+        } else {
+            steep = arr[k];
+            k++;
         }
     }
 }

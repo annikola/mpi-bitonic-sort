@@ -11,8 +11,9 @@ void reform_bitonic(int arr[], int n);
 int main (int argc, char *argv[]) {
 
     int i, j;
-    // int array[8] = {5, 8, 7, 6, 4, 3, 1, 2};
-    int array[8] = {5, 1, 1, 3, 3, 6, 7, 8};
+    int array[8] = {26, 25, 25, 14, 25, 25, 25, 27};
+    // int array[8] = {26, 25, 25, 25, 25, 25, 25, 27};
+    // int array[8] = {5, 1, 1, 3, 3, 6, 7, 8};
 
     reform_bitonic(array, 8);
 
@@ -26,12 +27,19 @@ int main (int argc, char *argv[]) {
 
 void reform_bitonic(int arr[], int n) {
 
-    int i;
+    int k, steep;
 
-    for (i = 1; i < n - 1; i++) {
-        if (arr[i] <= arr[i - 1] && arr[i] < arr[i + 1]) {
-            rotate_left(arr, n, i);
+    steep = arr[0];
+    k = 1;
+    while (k < n - 1) {
+        if (arr[k] < steep && arr[k] < arr[k + 1]) {
+            rotate_left(arr, n, k);
             break;
+        } else if (arr[k] < steep && arr[k] == arr[k + 1]) {
+            k++;
+        } else {
+            steep = arr[k];
+            k++;
         }
     }
 }
