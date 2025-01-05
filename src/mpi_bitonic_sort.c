@@ -11,12 +11,11 @@
 #define MIN_Q 20
 #define MAX_Q 27
 
-#define MAX_INTEGER 1000000
-
 int asc_compare(const void *a, const void *b);
 int desc_compare(const void *a, const void *b);
 int array_compare(int *arr1, int *arr2, int n);
 void swap(int *a, int *b);
+void exchange(int *A, int *B, int n, int minmax);
 
 int main (int argc, char *argv[]) {
 
@@ -48,6 +47,7 @@ int main (int argc, char *argv[]) {
 
     srand(time(0) + taskid);
 
+    // Calculate the desired instructions table based on the requirements
     Q = ipow(2, q);
     total_proc = ipow(2, p);
     reps = p + 1;
@@ -60,12 +60,14 @@ int main (int argc, char *argv[]) {
     B = (int *)malloc(Q * sizeof(int));
     A = (int *)malloc(Q * sizeof(int));
     for (i = 0; i < Q; i++) {
-        A[i] = rand() % MAX_INTEGER + 1;
+        A[i] = rand();
     }
-    
+
     MPI_Barrier(MPI_COMM_WORLD);
 
+    // Perform the main exchange and sorting based on the generated instructions
     for (i = 0; i < total_reps; i++) {
+
         if (instructions[i][taskid].sort == ASCENT && i == 0) {
             qsort(A, Q, sizeof(int), asc_compare);
         } else if (instructions[i][taskid].sort == ASCENT && i > 0){
@@ -78,47 +80,36 @@ int main (int argc, char *argv[]) {
 
         if (!instructions[i][taskid].flow) {
             MPI_Send(A, Q, MPI_INT, instructions[i][taskid].target_pid, 0, MPI_COMM_WORLD);
-            // printf("%d SENT TO %d at %ld\n", taskid, instructions[i][taskid].target_pid, clock());
             MPI_Recv(B, Q, MPI_INT, instructions[i][taskid].target_pid, 0, MPI_COMM_WORLD, MPI_STATUS_IGNORE);
-            for (k = 0; k < Q; k++) {
-                if (A[k] > B[k]) {
-                    swap(&A[k], &B[k]);
-                }
-            }
+            exchange(A, B, Q, instructions[i][taskid].flow);
         } else {
             MPI_Recv(B, Q, MPI_INT, instructions[i][taskid].target_pid, 0, MPI_COMM_WORLD, MPI_STATUS_IGNORE);
             MPI_Send(A, Q, MPI_INT, instructions[i][taskid].target_pid, 0, MPI_COMM_WORLD);
-            for (k = 0; k < Q; k++) {
-                if (A[k] < B[k]) {
-                    swap(&A[k], &B[k]);
-                }
-            }
-            // printf("%d SENT TO %d at %ld\n", taskid, instructions[i][taskid].target_pid, clock());
+            exchange(A, B, Q, instructions[i][taskid].flow);
         }
     }
 
-    // printf("sort elements of %d ascending\n", taskid);
+    // Perform the final sort locally
     elbow_sort(A, Q, ASCENT);
     MPI_Barrier(MPI_COMM_WORLD);
     end_time = MPI_Wtime();
-    // printf("Total MPI Bitonic Sort time: %lf\n", end_time - start_time);
+
+    // Get the maximum finishing time of of all tasks (finishing time)
     MPI_Reduce(&end_time, &max_time, 1, MPI_DOUBLE, MPI_MAX, total_proc - 1, MPI_COMM_WORLD);
     if (taskid == total_proc - 1) {
         printf("Total execution time: %lf seconds\n", max_time - start_time);
     }
 
-    // printf("%d HAS ", taskid);
+    // Check for local ascent
     for (i = 0; i < Q; i++) {
-        // printf("%d ", A[i]);
         B[i] = A[i];
     }
-    // printf("\n");
-
     qsort(A, Q, sizeof(int), asc_compare);
     if (!array_compare(A, B, Q)) {
         printf("Falsely Sorted!\n");
     }
 
+    // Check for global ascent
     if (taskid == 0) {
         MPI_Send(&A[Q - 1], 1, MPI_INT, taskid + 1, 0, MPI_COMM_WORLD);
     } else if (taskid == total_proc - 1) {
@@ -169,4 +160,18 @@ void swap(int *a, int *b) {
     dummy = *a;
     *a = *b;
     *b = dummy;
+}
+
+void exchange(int *A, int *B, int n, int minmax) {
+
+    int i;
+
+    #pragma omp parallel for
+    for (i = 0; i < n; i++) {
+        if (A[i] > B[i] && !minmax) {
+            swap(&A[i], &B[i]);
+        } else if (A[i] < B[i] && minmax) {
+            swap(&A[i], &B[i]);
+        }
+    }
 }

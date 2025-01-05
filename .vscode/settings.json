@@ -1,5 +1,6 @@
 {
     "files.associations": {
-        "bitonic_sequence_helpers.h": "c"
+        "bitonic_sequence_helpers.h": "c",
+        "vectoral_bitonic_sort.h": "c"
     }
 }
