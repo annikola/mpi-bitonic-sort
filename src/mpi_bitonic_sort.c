@@ -24,7 +24,8 @@ int main (int argc, char *argv[]) {
     int taskid;
     int p, q, Q, total_proc, reps, total_reps;
     int *A, *B;
-    double start_time, end_time;
+    int validator;
+    double start_time, end_time, max_time;
     Instruction **instructions;
 
     if (argc < MIN_ARGS + 1) {
@@ -100,7 +101,12 @@ int main (int argc, char *argv[]) {
     elbow_sort(A, Q, ASCENT);
     MPI_Barrier(MPI_COMM_WORLD);
     end_time = MPI_Wtime();
-    printf("Total MPI Bitonic Sort time: %lf\n", end_time - start_time);
+    // printf("Total MPI Bitonic Sort time: %lf\n", end_time - start_time);
+    MPI_Reduce(&end_time, &max_time, 1, MPI_DOUBLE, MPI_MAX, total_proc - 1, MPI_COMM_WORLD);
+    if (taskid == total_proc - 1) {
+        printf("Total execution time: %lf seconds\n", max_time - start_time);
+    }
+
     // printf("%d HAS ", taskid);
     for (i = 0; i < Q; i++) {
         // printf("%d ", A[i]);
@@ -109,10 +115,25 @@ int main (int argc, char *argv[]) {
     // printf("\n");
 
     qsort(A, Q, sizeof(int), asc_compare);
-    if (array_compare(A, B, Q)) {
-        printf("Correctly Sorted!\n");
-    } else {
+    if (!array_compare(A, B, Q)) {
         printf("Falsely Sorted!\n");
+    }
+
+    if (taskid == 0) {
+        MPI_Send(&A[Q - 1], 1, MPI_INT, taskid + 1, 0, MPI_COMM_WORLD);
+    } else if (taskid == total_proc - 1) {
+        MPI_Recv(&validator, 1, MPI_INT, taskid - 1, 0, MPI_COMM_WORLD, MPI_STATUS_IGNORE);
+        if (validator <= A[Q - 1]) {
+            printf("Correctly Sorted!\n");
+        } else {
+            printf("Falsely Sorted!\n");
+        }
+    } else {
+        MPI_Recv(&validator, 1, MPI_INT, taskid - 1, 0, MPI_COMM_WORLD, MPI_STATUS_IGNORE);
+        if (validator > A[Q - 1]) {
+            printf("Falsely Sorted!\n");
+        }
+        MPI_Send(&A[Q - 1], 1, MPI_INT, taskid + 1, 0, MPI_COMM_WORLD);
     }
 
     MPI_Finalize();
