@@ -2,3 +2,5 @@ build/
 a.out
 testing_speed_up.c
 src/mpi_sort.c
+.vscode/
+old/
