@@ -24,7 +24,7 @@ int main (int argc, char *argv[]) {
     int p, q, Q, total_proc, reps, total_reps;
     int *A, *B;
     int validator;
-    double start_time, end_time, max_time;
+    double start_time, end_time, total_local_time, max_time;
     Instruction **instructions;
 
     if (argc < MIN_ARGS + 1) {
@@ -93,11 +93,12 @@ int main (int argc, char *argv[]) {
     elbow_sort(A, Q, ASCENT);
     MPI_Barrier(MPI_COMM_WORLD);
     end_time = MPI_Wtime();
+    total_local_time = end_time - start_time;
 
     // Get the maximum finishing time of of all tasks (finishing time)
-    MPI_Reduce(&end_time, &max_time, 1, MPI_DOUBLE, MPI_MAX, total_proc - 1, MPI_COMM_WORLD);
+    MPI_Reduce(&total_local_time, &max_time, 1, MPI_DOUBLE, MPI_MAX, total_proc - 1, MPI_COMM_WORLD);
     if (taskid == total_proc - 1) {
-        printf("Total execution time: %lf seconds\n", max_time - start_time);
+        printf("Total execution time: %lf seconds\n", max_time);
     }
 
     // Check for local ascent
