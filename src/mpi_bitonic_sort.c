@@ -166,7 +166,6 @@ void exchange(int *A, int *B, int n, int minmax) {
 
     int i;
 
-    #pragma omp parallel for
     for (i = 0; i < n; i++) {
         if (A[i] > B[i] && !minmax) {
             swap(&A[i], &B[i]);
