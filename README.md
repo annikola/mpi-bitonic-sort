@@ -8,7 +8,7 @@ Instructions in order to run the implementation on Aristotelis:
 module load gcc/9.2.0
 module load openmpi/3.1.3
 ```
-2) make all
+2) ```make all```
 3) Run the .sbatch file like so:
 ```
 sbatch mpi_bitonic_sort.sbatch
