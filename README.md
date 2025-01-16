@@ -14,4 +14,5 @@ module load openmpi/3.1.3
 sbatch mpi_bitonic_sort.sbatch
 ```
 You can edit it to test on a different partition or using a different configuration of nodes and tasks-per-node.
+
 4) If anything goes wrong and you can not immediately solve it please contact me on Zulip. Thank you!
