@@ -1,7 +1,7 @@
 # mpi-bitonic-sort
 Parallel &amp; Distributed Computer Systems - Homework 2
 
-Instruction in order to run the implementation on Aristotelis:
+Instructions in order to run the implementation on Aristotelis:
 
 1) After you login to Aristotelis, execute the following in the same order as below:
 ```
